@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IR Search Engine</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --panel:#ffffff;
+      --panel-2:#fbfbfe;
+      --border:#e7e9f1;
+      --text:#0f172a;
+      --muted:#6b7280;
+      --brand:#7c3aed;
+      --brand-2:#22c55e;
+      --chip:#eef2ff;
+      --shadow:0 8px 28px rgba(16,24,40,.08);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%}
+    body{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% -10%, #edeaff 0%, transparent 60%),
+        radial-gradient(900px 600px at 90% -15%, #e5fff2 0%, transparent 60%),
+        var(--bg);
+      display:flex;justify-content:center;align-items:flex-start;
+      padding:28px 16px;
+    }
+    .container{width:100%;max-width:1024px}
+
+    /* ------- Header / Brand ------- */
+    header{margin-bottom:14px}
+    .brand{
+      display:flex;align-items:center;gap:14px;justify-content:center;
+    }
+    .brand .logo{
+      width:44px;height:44px;border-radius:10px;overflow:hidden;
+      background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);
+      display:flex;align-items:center;justify-content:center;padding:4px;
+    }
+    .brand .logo img{
+      max-width:100%;max-height:100%;object-fit:contain;display:block;
+    }
+    .brand h1{
+      margin:0;font-weight:900;letter-spacing:.2px;
+      background:linear-gradient(90deg,var(--brand),var(--brand-2));
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+      font-size:clamp(28px,4vw,44px);
+      line-height:1.1;
+    }
+    .tagline{
+      text-align:center;margin:6px auto 10px;color:var(--muted);
+      font-size:15px;max-width:920px
+    }
+
+    /* ------- Controls ------- */
+    .controls{
+      display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px
+    }
+    .search{
+      flex:1;display:flex;align-items:center;gap:10px;background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:999px;padding:8px 10px;box-shadow:var(--shadow)
+    }
+    .search input{
+      flex:1;padding:12px 12px;border:none;background:transparent;outline:none;
+      color:var(--text);font-size:16px
+    }
+    .search button{
+      padding:10px 16px;border:none;border-radius:999px;
+      background:linear-gradient(90deg,var(--brand),var(--brand-2));
+      color:#fff;font-weight:700;cursor:pointer;transition:transform .06s ease;
+      box-shadow:0 6px 18px rgba(124,58,237,.22);
+    }
+    .search button:active{transform:translateY(1px)}
+    .selects{display:flex;gap:10px;align-items:center}
+    .chip{
+      background:var(--chip);border:1px solid #dfe3ff;
+      color:#3730a3;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:600
+    }
+    select{
+      background:var(--panel);color:var(--text);border:1px solid var(--border);
+      border-radius:10px;padding:8px 10px;box-shadow:var(--shadow)
+    }
+
+    #results-info{
+      color:var(--muted);font-size:14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+      padding:10px 0;margin:12px 0 18px 0
+    }
+
+    /* ------- Cards ------- */
+    .card{
+      background:
+        linear-gradient(180deg, #ffffff 0%, #ffffff 60%, #fafbff 100%),
+        var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:16px 18px;margin:14px 0;box-shadow:var(--shadow);
+      transform:translateY(6px);opacity:0;animation:cardIn .35s ease forwards;
+    }
+    @keyframes cardIn{
+      from{opacity:0;transform:translateY(6px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    .title a{
+      color:#111827;text-decoration:none;font-weight:800;font-size:18px;line-height:1.35
+    }
+    .title a:hover{color:#000;text-decoration:underline}
+    .meta{
+      margin-top:6px;font-size:13px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;align-items:center
+    }
+    .year{
+      background:#f2f7ff;border:1px solid #dce6ff;border-radius:999px;padding:2px 8px;color:#1f2937;font-weight:600
+    }
+
+    /* ------- Score meter ------- */
+    .score-wrap{display:flex;align-items:center;gap:10px;margin-top:6px}
+    .score-badge{
+      background:#f3e8ff;border:1px solid #e9d5ff;color:#6b21a8;
+      border-radius:999px;padding:2px 8px;font-weight:800;font-size:12px
+    }
+    .score-bar{
+      position:relative;height:8px;width:160px;border-radius:999px;
+      background:#f3f4f6;border:1px solid var(--border);overflow:hidden
+    }
+    .score-fill{
+      position:absolute;left:0;top:0;bottom:0;width:0%;
+      background:linear-gradient(90deg,var(--brand),var(--brand-2));
+      transition:width .35s ease
+    }
+
+    /* ------- Abstract ------- */
+    .abstract{margin-top:10px;background:var(--panel-2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .abs-header{
+      display:flex;justify-content:space-between;align-items:center;padding:10px 12px;cursor:pointer;
+      color:#111827;font-weight:700;user-select:none
+    }
+    .abs-header .muted{font-weight:500}
+    .abs-body{
+      max-height:0;overflow:hidden;transition:max-height .25s ease,padding .25s ease;
+      padding:0 12px;color:#374151
+    }
+    .abs-body.open{padding:10px 12px 12px 12px}
+
+    /* ------- Pagination ------- */
+    .pagination{display:flex;justify-content:center;gap:8px;margin:18px 0}
+    .pagination button{
+      padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);
+      color:#111827;cursor:pointer;box-shadow:var(--shadow);font-weight:600
+    }
+    .pagination button:disabled{opacity:.45;cursor:not-allowed}
+
+    /* ------- Skeletons ------- */
+    .skeleton{
+      border-radius:12px;margin:12px 0;height:90px;position:relative;overflow:hidden;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow)
+    }
+    .skeleton::after{
+      content:"";position:absolute;inset:0;
+      background:linear-gradient(90deg, transparent, rgba(124,58,237,.08), transparent);
+      animation:shimmer 1.2s infinite
+    }
+    @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <!-- Replace src with your actual logo file path -->
+        <div class="logo" style="width:250px">
+                    <img src="https://softwarica.edu.np/file-manager/photos/1/Logo.svg" alt="Softwarica College logo" />
+
+        </div>
+        <h1>Sangram Poudel IR Search Engine</h1>
+      </div>
+      <p class="tagline">
+        Search academic publications of Coventry University's School of Economics, Finance and Accounting
+      </p>
+    </header>
+
+    <div class="controls">
+      <form id="search-form" class="search" autocomplete="off">
+        <input id="search-input" type="text" placeholder="Search by title, author, or abstract…" autofocus/>
+        <button type="submit">Search</button>
+      </form>
+      <div class="selects">
+        <span class="chip" id="stats-chip">Ready</span>
+        <label class="muted">Per page
+          <select id="page-size">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div id="results-info"></div>
+    <div id="results-container"></div>
+    <div id="pagination-controls" class="pagination"></div>
+  </div>
+
+  <script>
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const resultsContainer = document.getElementById('results-container');
+    const resultsInfo = document.getElementById('results-info');
+    const paginationControls = document.getElementById('pagination-controls');
+    const pageSizeSelect = document.getElementById('page-size');
+    const statsChip = document.getElementById('stats-chip');
+
+    let currentPage = 1;
+    let totalPages = 1;
+    let pageSize = 50; // default to 50
+    let lastQuery = "";
+
+    const getYear = (d) => {
+      const m = (d || "").match(/(19|20)\d{2}/);
+      return m ? m[0] : "";
+    };
+    const safeDate = (r) => r.date || r.published_date || "";
+    const toAuthors = (a) => Array.isArray(a) ? a : (a ? [a] : []);
+
+    function setLoadingSkeleton(count=6){
+      resultsContainer.innerHTML = "";
+      for(let i=0;i<count;i++){
+        const s = document.createElement('div');
+        s.className = 'skeleton';
+        resultsContainer.appendChild(s);
+      }
+    }
+
+    async function fetchAllPublications(page = 1) {
+      lastQuery = "";
+      resultsInfo.textContent = 'Loading…';
+      paginationControls.innerHTML = '';
+      setLoadingSkeleton(pageSize >= 25 ? 8 : 5);
+
+      const response = await fetch(`/publications/?page=${page}&page_size=${pageSize}`);
+      const data = await response.json();
+
+      currentPage = data.page;
+      totalPages = data.total_pages;
+
+      resultsInfo.textContent = `Showing page ${data.page} of ${data.total_pages} — ${data.total_publications} publications`;
+      statsChip.textContent = `Page size: ${pageSize}`;
+      displayResults(data.publications, false);
+      renderPagination();
+    }
+
+    async function fetchSearchResults(query) {
+      resultsInfo.textContent = 'Searching…';
+      paginationControls.innerHTML = '';
+      setLoadingSkeleton(6);
+
+      const response = await fetch(`/search/?query=${encodeURIComponent(query)}`);
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        resultsInfo.textContent = `Found ${data.results_count} results for “${data.query}”`;
+        statsChip.textContent = `Search mode`;
+        displayResults(data.results, true);
+      } else {
+        resultsInfo.textContent = `No results found for “${data.query}”`;
+        resultsContainer.innerHTML = '';
+        statsChip.textContent = `No results`;
+      }
+    }
+
+    function displayResults(results, showScore) {
+      resultsContainer.innerHTML = "";
+      results.forEach((result, idx) => {
+        const item = document.createElement('div');
+        item.className = 'card';
+        item.style.animationDelay = `${Math.min(idx*0.015, 0.25)}s`;
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'title';
+        const a = document.createElement('a');
+        a.href = result.link;
+        a.textContent = result.title || '(untitled)';
+        a.target = '_blank';
+        titleDiv.appendChild(a);
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'meta';
+
+        const authorsTxt = toAuthors(result.authors).length ? toAuthors(result.authors).join(", ") : "Unknown authors";
+        const dateTxt = safeDate(result) || "Unknown date";
+        metaDiv.innerHTML = `<span>${authorsTxt}</span> · <span>${dateTxt}</span>`;
+
+        const year = getYear(dateTxt);
+        if (year){
+          const chip = document.createElement('span');
+          chip.className = 'year';
+          chip.textContent = year;
+          metaDiv.appendChild(chip);
+        }
+
+        if (showScore && typeof result.score !== 'undefined') {
+          const s = Number(result.score);
+          const frac = isFinite(s) ? Math.max(0, Math.min(s, 1)) : 0;
+          const pct = Math.round(frac * 100);
+
+          const scoreWrap = document.createElement('div');
+          scoreWrap.className = 'score-wrap';
+
+          const badge = document.createElement('span');
+          badge.className = 'score-badge';
+          badge.textContent = `Score ${s.toFixed(2)}`;
+
+          const bar = document.createElement('div');
+          bar.className = 'score-bar';
+          const fill = document.createElement('div');
+          fill.className = 'score-fill';
+          fill.style.width = pct + '%';
+          bar.appendChild(fill);
+
+          scoreWrap.appendChild(badge);
+          scoreWrap.appendChild(bar);
+          metaDiv.appendChild(scoreWrap);
+        }
+
+        const absWrap = document.createElement('div');
+        absWrap.className = 'abstract';
+
+        const absHead = document.createElement('div');
+        absHead.className = 'abs-header';
+        absHead.innerHTML = `<span>Abstract</span><span class="muted">click to toggle</span>`;
+
+        const absBody = document.createElement('div');
+        absBody.className = 'abs-body';
+        const absText = result.abstract && result.abstract.trim().length ? result.abstract : "No abstract available.";
+        absBody.textContent = absText;
+
+        absHead.addEventListener('click', () => {
+          const opening = !absBody.classList.contains('open');
+          absBody.classList.toggle('open', opening);
+          absBody.style.maxHeight = opening ? `${absBody.scrollHeight + 12}px` : '0';
+        });
+
+        absWrap.appendChild(absHead);
+        absWrap.appendChild(absBody);
+
+        item.appendChild(titleDiv);
+        item.appendChild(metaDiv);
+        item.appendChild(absWrap);
+        resultsContainer.appendChild(item);
+      });
+    }
+
+    function renderPagination() {
+      paginationControls.innerHTML = '';
+      const prev = document.createElement('button');
+      prev.textContent = '‹ Previous';
+      prev.disabled = currentPage <= 1;
+      prev.addEventListener('click', () => fetchAllPublications(currentPage - 1));
+
+      const next = document.createElement('button');
+      next.textContent = 'Next ›';
+      next.disabled = currentPage >= totalPages;
+      next.addEventListener('click', () => fetchAllPublications(currentPage + 1));
+
+      const indicator = document.createElement('button');
+      indicator.disabled = true;
+      indicator.textContent = `Page ${currentPage} / ${totalPages}`;
+
+      paginationControls.appendChild(prev);
+      paginationControls.appendChild(indicator);
+      paginationControls.appendChild(next);
+    }
+
+    searchForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = searchInput.value.trim();
+      if (q) fetchSearchResults(q);
+      else fetchAllPublications(1);
+    });
+
+    pageSizeSelect.addEventListener('change', () => {
+      pageSize = parseInt(pageSizeSelect.value, 10);
+      fetchAllPublications(1);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchAllPublications(1);
+    });
+  </script>
+</body>
+</html>
